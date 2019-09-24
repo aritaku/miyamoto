@@ -30,7 +30,7 @@ loadDateUtils = function () {
       // 1時20, 2:30, 3:00pm
       if(matches[2] != null) {
         hour = parseInt(matches[2], 10);
-        min = parseInt((matches[3] ? matches[3] : '0'), 10);
+        min = parseInt(matches[3] ? matches[3] : '0', 10);
         if(_.contains(['pm'], matches[4])) {
           hour += 12;
         }
@@ -39,7 +39,7 @@ loadDateUtils = function () {
       // 午後1 午後2時30 pm3
       if(matches[5] != null) {
         hour = parseInt(matches[6], 10);
-        min = parseInt((matches[8] ? matches[8] : '0'), 10);
+        min = parseInt(matches[8] ? matches[8] : '0', 10);
         if(_.contains(['pm', '午後'], matches[5])) {
           hour += 12;
         }
@@ -48,7 +48,7 @@ loadDateUtils = function () {
       // 1am 2:30pm
       if(matches[9] != null) {
         hour = parseInt(matches[9], 10);
-        min = parseInt((matches[11] ? matches[11] : '0'), 10);
+        min = parseInt(matches[11] ? matches[11] : '0', 10);
         if(_.contains(['pm'], matches[12])) {
           hour += 12;
         }
@@ -70,7 +70,6 @@ loadDateUtils = function () {
     str = String(str || "").toLowerCase().replace(/[Ａ-Ｚａ-ｚ０-９]/g, function(s) {
       return String.fromCharCode(s.charCodeAt(0) - 0xFEE0);
     });
-
     if(str.match(/(明日|tomorrow)/)) {
       var tomorrow = new Date(now().getFullYear(), now().getMonth(), now().getDate()+1);
       return [tomorrow.getFullYear(), tomorrow.getMonth()+1, tomorrow.getDate()]
@@ -87,24 +86,21 @@ loadDateUtils = function () {
 
     var reg = /((\d{4})[-\/年]{1}|)(\d{1,2})[-\/月]{1}(\d{1,2})/;
     var matches = str.match(reg);
+        
     if(matches) {
-      var year = parseInt(matches[2], 10);
+      var year = parseInt(matches[2]);
       var month = parseInt(matches[3], 10);
       var day = parseInt(matches[4], 10);
-      if(_.isNaN(year) || year < 1970) {
-        //
+      if( (year !== null) || year < 1970) {
         if((now().getMonth() + 1) >= 11 && month <= 2) {
           year = now().getFullYear() + 1;
-        }
-        else if((now().getMonth() + 1) <= 2 && month >= 11) {
+        } else if((now().getMonth() + 1) <= 2 && month >= 11) {
           year = now().getFullYear() - 1;
-        }
-        else {
+        } else {
           year = now().getFullYear();
         }
       }
-
-      return [year, month, day];
+      return [year,month,day];
     }
 
     return null;
@@ -226,8 +222,6 @@ loadEventListener = function () {
 if(typeof exports !== 'undefined') {
   exports.EventListener = loadEventListener();
 }
-// KVS
-// でも今回は使ってないです
 
 loadGASProperties = function (exports) {
   var GASProperties = function() {
@@ -249,37 +243,6 @@ loadGASProperties = function (exports) {
 if(typeof exports !== 'undefined') {
   exports.GASProperties = loadGASProperties();
 }
-// Google Apps Script専用ユーティリティ
-
-// GASのログ出力をブラウザ互換にする
-if(typeof(console) == 'undefined' && typeof(Logger) != 'undefined') {
-  console = {};
-  console.log = function() {
-    Logger.log(Array.prototype.slice.call(arguments).join(', '));
-  }
-}
-
-// サーバに新しいバージョンが無いかチェックする
-checkUpdate = function(responder) {
-  if(typeof GASProperties === 'undefined') GASProperties = loadGASProperties();
-  var current_version = parseFloat(new GASProperties().get('version')) || 0;
-
-  var response = UrlFetchApp.fetch("https://raw.githubusercontent.com/masuidrive/miyamoto/master/VERSION", {muteHttpExceptions: true});
-
-  if(response.getResponseCode() == 200) {
-    var latest_version = parseFloat(response.getContentText());
-    if(latest_version > 0 && latest_version > current_version) {
-      responder.send("最新のみやもとさんの準備ができました！\nhttps://github.com/masuidrive/miyamoto/blob/master/UPDATE.md を読んでください。");
-
-      var response = UrlFetchApp.fetch("https://raw.githubusercontent.com/masuidrive/miyamoto/master/HISTORY.md", {muteHttpExceptions: true});
-      if(response.getResponseCode() == 200) {
-        var text = String(response.getContentText()).replace(new RegExp("## "+current_version+"[\\s\\S]*", "m"), '');
-        responder.send(text);
-      }
-    }
-  }
-};
-// KVS
 
 loadGSProperties = function (exports) {
   var GSProperties = function(spreadsheet) {
@@ -364,8 +327,8 @@ loadGSTemplate = function() {
             "出勤中", "出勤なし", "休暇中", "休暇なし", "出勤確認", "退勤確認"
           ],
           [
-            "<@#1> おはようございます (#2)", "<@#1> 出勤時間を#2へ変更しました",
-            "<@#1> お疲れ様でした (#2)", "<@#1> 退勤時間を#2へ変更しました",
+            "<@#1> おはよう。今日も1日頑張ってね。 (#2)", "<@#1> 出勤時間を#2へ変更しました",
+            "<@#1> お疲れ様。ゆっくりやすんでね。 (#2)", "<@#1> 退勤時間を#2へ変更しました",
             "<@#1> #2を休暇として登録しました", "<@#1> #2の休暇を取り消しました",
             "#1が出勤しています", "全員退勤しています",
             "#1は#2が休暇です", "#1に休暇の人はいません",
@@ -467,7 +430,7 @@ loadGSTimesheets = function () {
     }
 
     this._sheets[username] = sheet;
-
+    
     return sheet;
   };
 
@@ -476,17 +439,16 @@ loadGSTimesheets = function () {
     var rowNo = this.scheme.properties.length + 4;
     var startAt = DateUtils.parseDate(this.settings.get("開始日"));
     var s = new Date(startAt[0], startAt[1]-1, startAt[2], 0, 0, 0);
-    rowNo += parseInt((date.getTime()-date.getTimezoneOffset()*60*1000)/(1000*24*60*60), 10) - parseInt((s.getTime()-s.getTimezoneOffset()*60*1000)/(1000*24*60*60), 10);
+    rowNo += parseInt((date.getTime()-date.getTimezoneOffset()*60*1000)/(1000*24*60*60)) - parseInt((s.getTime()-s.getTimezoneOffset()*60*1000)/(1000*24*60*60));
     return rowNo;
   };
 
   GSTimesheets.prototype.get = function(username, date) {
     var sheet = this._getSheet(username);
     var rowNo = this._getRowNo(username, date);
-    var row = sheet.getRange("A"+rowNo+":"+String.fromCharCode(65 + this.scheme.columns.length - 1)+rowNo).getValues()[0].map(function(v) {
+    var row = sheet.getRange("A" + rowNo + ":" + String.fromCharCode(65 + this.scheme.columns.length - 1)+rowNo).getValues()[0].map(function(v) {
       return v === '' ? undefined : v;
     });
-
     return({ user: username, date: row[0], signIn: row[1], signOut: row[2], note: row[3] });
   };
 
@@ -549,11 +511,12 @@ var init = function() {
   var global_settings = new GASProperties();
 
   var spreadsheetId = global_settings.get('spreadsheet');
+  var incomingUrl = global_settings.get('incomingUrl');
   if(spreadsheetId) {
     var spreadsheet = SpreadsheetApp.openById(spreadsheetId);
     var settings = new GSProperties(spreadsheet);
     var template = new GSTemplate(spreadsheet);
-    var slack = new Slack(settings.get('Slack Incoming URL'), template, settings);
+    var slack = new Slack(incomingUrl, template, settings);
     var storage = new GSTimesheets(spreadsheet, settings);
     var timesheets = new Timesheets(storage, settings, slack);
     return({
@@ -567,8 +530,31 @@ var init = function() {
 
 // SlackのOutgoingから来るメッセージ
 function doPost(e) {
+  var postData = JSON.parse(e.postData.getDataAsString());
+  var res = {};
+  if(postData.type == 'url_verification') {
+    res = {'challenge':postData.challenge};
+    return ContentService.createTextOutput(JSON.stringify(res)).setMimeType(ContentService.MimeType.JSON);
+  }
   var miyamoto = init();
-  miyamoto.receiver.receiveMessage(e.parameters);
+  miyamoto.receiver.receiveMessage(postData);
+}
+
+// debug function
+function sendSlack(message) {
+  var global_settings = new GASProperties();
+  var incomingUrl = global_settings.get('incomingUrl');
+
+  var data = {
+    'text' : message,
+    'as_user' : true
+  };
+  var options = {
+    'method' : 'post',
+    'contentType' : 'application/json; charset=UTF-8',
+    'payload' : JSON.stringify(data)
+  };
+  UrlFetchApp.fetch(incomingUrl, options);
 }
 
 // Time-based triggerで実行
@@ -601,23 +587,21 @@ function setUp() {
     global_settings.set('spreadsheet', spreadsheet.getId());
 
     var settings = new GSProperties(spreadsheet);
-    settings.set('Slack Incoming URL', '');
-    settings.setNote('Slack Incoming URL', 'Slackのincoming URLを入力してください');
     settings.set('開始日', DateUtils.format("Y-m-d", DateUtils.now()));
     settings.setNote('開始日', '変更はしないでください');
     settings.set('無視するユーザ', 'miyamoto,hubot,slackbot,incoming-webhook');
     settings.setNote('無視するユーザ', '反応をしないユーザを,区切りで設定する。botは必ず指定してください。');
 
     // 休日を設定 (iCal)
-    var calendarId = 'ja.japanese#holiday@group.v.calendar.google.com';
-    var calendar = CalendarApp.getCalendarById(calendarId);
-    var startDate = DateUtils.now();
-    var endDate = new Date(startDate.getFullYear() + 1, startDate.getMonth());
-    var holidays = _.map(calendar.getEvents(startDate, endDate), function(ev) {
-      return DateUtils.format("Y-m-d", ev.getAllDayStartDate());
-    });
-    settings.set('休日', holidays.join(', '));
-    settings.setNote('休日', '日付を,区切りで。来年までは自動設定されているので、以後は適当に更新してください');
+    // var calendarId = 'ja.japanese#holiday@group.v.calendar.google.com';
+    // var calendar = CalendarApp.getCalendarById(calendarId);
+    // var startDate = DateUtils.now();
+    // var endDate = new Date(startDate.getFullYear() + 1, startDate.getMonth());
+    // var holidays = _.map(calendar.getEvents(startDate, endDate), function(ev) {
+    //   return DateUtils.format("Y-m-d", ev.getAllDayStartDate());
+    // });
+    // settings.set('休日', holidays.join(', '));
+    // settings.setNote('休日', '日付を,区切りで。来年までは自動設定されているので、以後は適当に更新してください');
 
     // メッセージ用のシートを作成
     new GSTemplate(spreadsheet);
@@ -638,23 +622,6 @@ function setUp() {
   }
 };
 
-/* バージョンアップ処理を行う */
-function migrate() {
-  if(typeof GASProperties === 'undefined') GASProperties = loadGASProperties();
-
-  var global_settings = new GASProperties();
-  global_settings.set('version', "20141027.0");
-  console.log("バージョンアップが完了しました。");
-}
-
-
-
-/*
-function test1(e) {
-  var miyamoto = init();
-  miyamoto.receiver.receiveMessage({user_name:"masuidrive", text:"hello 8:00"});
-}
-*/
 // Slackのインタフェース
 // Slack = loadSlack();
 
@@ -670,10 +637,9 @@ loadSlack = function () {
   _.extend(Slack.prototype, EventListener.prototype);
 
   // 受信したメッセージをtimesheetsに投げる
-  Slack.prototype.receiveMessage = function(message) {
-    var username = String(message.user_name);
-    var body = String(message['text']);
-
+  Slack.prototype.receiveMessage = function(postData) {
+    var username = postData.event.user;
+    var body = postData.event.text;
     // 特定のアカウントには反応しない
     var ignore_users = (this.settings.get("無視するユーザ") || '').toLowerCase().replace(/^\s*(.*?)\s*$/, "$1").split(/\s*,\s*/);
     if(_.contains(ignore_users, username.toLowerCase())) return;
@@ -690,14 +656,15 @@ loadSlack = function () {
     options["text"] = message;
 
     var send_options = {
-      method: "post",
-      payload: {"payload": JSON.stringify(options)}
+     'method': "POST",
+     'contentType' : 'application/json',
+     'payload': JSON.stringify(options)
     };
 
     if(this.incomingURL) {
       UrlFetchApp.fetch(this.incomingURL, send_options);
     }
-
+    
     return message;
   };
 
@@ -740,12 +707,12 @@ loadTimesheets = function (exports) {
 
     // コマンド集
     var commands = [
-      ['actionSignOut', /(バ[ー〜ァ]*イ|ば[ー〜ぁ]*い|おやすみ|お[つっ]ー|おつ|さらば|お先|お疲|帰|乙|bye|night|(c|see)\s*(u|you)|退勤|ごきげんよ|グ[ッ]?バイ)/],
+      ['actionSignOut', /(バ[ー〜ァ]*イ|ば[ー〜ぁ]*い|おやすみ|お[つっ]ー|おつ|さらば|お先|お疲|帰|乙|bye|night|(c|see)\s*(u|you)|退勤|ごきげんよ|グ[ッ]?バイ)|ウィンガーディアムレビオーサ|退院/],
       ['actionWhoIsOff', /(だれ|誰|who\s*is).*(休|やす(ま|み|む))/],
       ['actionWhoIsIn', /(だれ|誰|who\s*is)/],
       ['actionCancelOff', /(休|やす(ま|み|む)|休暇).*(キャンセル|消|止|やめ|ません)/],
-      ['actionOff', /(休|やす(ま|み|む)|休暇)/],
-      ['actionSignIn', /(モ[ー〜]+ニン|も[ー〜]+にん|おっは|おは|へろ|はろ|ヘロ|ハロ|hi|hello|morning|出勤)/],
+      ['actionOff', /(休|やす(ま|み|む)|休暇)|アバダケダブラ/],
+      ['actionSignIn', /(モ[ー〜]+ニン|も[ー〜]+にん|おっは|おは|へろ|はろ|ヘロ|ハロ|hi|hello|morning|出勤|入院)/],
       ['confirmSignIn', /__confirmSignIn__/],
       ['confirmSignOut', /__confirmSignOut__/],
     ];
